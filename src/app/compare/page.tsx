@@ -2,16 +2,23 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { StatusChip } from "@/components/StatusChip";
 import type { EvaluationMetric } from "@/lib/domain";
+import { compareFailurePatterns } from "@/lib/analytics";
+import { SCENARIOS } from "@/lib/scenarios";
+import {
+  summarizeLlmProviderFailures,
+  type LlmClarityCalibrationArtifact,
+} from "@/lib/judgment";
 import { findRun, loadExperiment, runFacts } from "@/lib/ui/data";
 import { METRIC_LABELS, formatCountRate, formatPercent } from "@/lib/ui/format";
 
 const FOCUS = ["APT-003", "RX-003", "RX-004"] as const;
 
 export default function ComparePage() {
-  const { v1Runs, v2Runs, comparison, calibrationV1, calibrationV2 } =
+  const { v1Runs, v2Runs, comparison, calibrationV1, calibrationV2, llmCalibration } =
     loadExperiment();
   const overall = comparison.overallScenarioPassRate;
   const verified = comparison.metricPassRates.verified_task_completion;
+  const patterns = compareFailurePatterns(v1Runs, v2Runs, SCENARIOS);
 
   return (
     <AppShell current="compare">
@@ -76,6 +83,62 @@ export default function ComparePage() {
       </aside>
 
       <section className="mt-10">
+        <h2 className="text-sm font-semibold">Failure patterns</h2>
+        <p className="mt-1 text-xs text-muted">
+          Derived from evaluator results in this synthetic suite. A scenario
+          can belong to more than one pattern.
+        </p>
+        <div className="mt-3 overflow-x-auto border border-line bg-card">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <caption className="sr-only">
+              Failure pattern counts for v1-naive and v2-safer
+            </caption>
+            <thead className="border-b border-line bg-canvas text-xs uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-3 py-2 font-medium">Failure pattern</th>
+                <th className="px-3 py-2 font-medium">Priority</th>
+                <th className="px-3 py-2 font-medium">v1</th>
+                <th className="px-3 py-2 font-medium">v2</th>
+                <th className="px-3 py-2 font-medium">Affected scenarios</th>
+              </tr>
+            </thead>
+            <tbody>
+              {patterns.map((row) => (
+                <tr key={row.pattern} className="border-b border-line last:border-0">
+                  <td className="px-3 py-3">
+                    <div className="font-medium">{row.label}</div>
+                    <div className="mt-1 text-xs text-muted">{row.meaning}</div>
+                  </td>
+                  <td className="px-3 py-3 font-mono text-xs">{row.priority}</td>
+                  <td className="px-3 py-3 font-mono">{row.v1Count}</td>
+                  <td className="px-3 py-3 font-mono">{row.v2Count}</td>
+                  <td className="px-3 py-3 text-xs">
+                    <PatternScenarios
+                      version="v1-naive"
+                      ids={row.v1ScenarioIds}
+                    />
+                    <PatternScenarios
+                      version="v2-safer"
+                      ids={row.v2ScenarioIds}
+                    />
+                    {row.v1Count === 0 && row.v2Count === 0 ? (
+                      <span className="text-muted">None in this set</span>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 max-w-3xl text-sm">
+          The intervention removed false completion and the missed escalation
+          in this synthetic set, but transactional failures remained because
+          the underlying tool timeout/failure was unchanged. Improved agent
+          behavior is not the same as improved external-system reliability.
+        </p>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-sm font-semibold">Failure investigations</h2>
         <div className="mt-3 space-y-4">
           {FOCUS.map((id) => {
@@ -134,7 +197,130 @@ export default function ComparePage() {
           Seven labels are insufficient to establish evaluator reliability.
         </p>
       </section>
+
+      <LlmJudgeExperiment artifact={llmCalibration} />
     </AppShell>
+  );
+}
+
+function LlmJudgeExperiment({
+  artifact,
+}: {
+  artifact: LlmClarityCalibrationArtifact | null;
+}) {
+  if (!artifact) {
+    return (
+      <p className="mt-6 text-xs text-muted">
+        Optional LLM calibration not run.
+      </p>
+    );
+  }
+
+  const { evaluated, disagreements, errors, model, rows } = artifact;
+  const providerFailures = summarizeLlmProviderFailures(artifact);
+  const agreementRate = formatPercent(evaluated.exactAgreementRate);
+
+  return (
+    <section className="mt-6 border border-line bg-card px-4 py-4">
+      <h2 className="text-sm font-semibold">LLM judge experiment</h2>
+      <p className="mt-1 text-xs text-muted">
+        Optional first-run evidence. Does not replace deterministic evaluation
+        or change v1/v2 headline metrics.
+      </p>
+      <p className="mt-3 text-sm">Model: {model}</p>
+      <ul className="mt-2 space-y-1 text-sm">
+        <li>Attempted: {rows.length}</li>
+        <li>Evaluated: {evaluated.n}</li>
+        <li>Errors: {errors.n}</li>
+        <li>
+          Agreement: {evaluated.exactAgreementCount}/{evaluated.n} ({agreementRate})
+        </li>
+        <li>MAE: {evaluated.meanAbsoluteError}</li>
+      </ul>
+      {disagreements.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-sm font-medium">Disagreement</p>
+          <ul className="mt-2 space-y-3 text-sm">
+            {disagreements.map((item) => (
+              <li key={item.id}>
+                <span className="font-mono">{item.id}</span>
+                <br />
+                Human: {item.humanScore}
+                <br />
+                LLM: {item.llmScore}
+                <br />
+                <span className="text-muted">{item.reason}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-muted">
+          No disagreements among evaluated cases.
+        </p>
+      )}
+      {errors.n > 0 ? (
+        <div className="mt-4">
+          <p className="text-sm font-medium">Provider failures</p>
+          <p className="mt-1 text-xs text-muted">
+            Excluded from agreement. Not evaluator disagreements. Raw API
+            bodies remain in the calibration artifact.
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+            {providerFailures.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <p className="mt-4 text-sm">
+        The disagreement exposed a rubric boundary: the human label treated a
+        stated scheduler retry as a concrete next step, while the LLM required
+        evidence of an owned handoff. This is evidence to refine/validate the
+        rubric on a larger labeled set, not justification to change the label
+        after seeing the model output.
+      </p>
+      <p className="mt-3 text-sm">
+        Four of seven calls failed because of provider availability/quota
+        errors. Production LLM evaluation would require retries/backoff, rate
+        limiting, explicit evaluator-error states, and monitoring. Provider
+        errors must not be scored as agent failures.
+      </p>
+      <p className="mt-3 text-sm text-review">
+        2/3 agreement on three usable judgments is too small to establish
+        reliability. It is not a comparison of Gemini against the deterministic
+        evaluator.
+      </p>
+    </section>
+  );
+}
+
+function PatternScenarios({
+  version,
+  ids,
+}: {
+  version: "v1-naive" | "v2-safer";
+  ids: string[];
+}) {
+  if (ids.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-1">
+      <span className="text-muted">{version}: </span>
+      {ids.map((id, index) => (
+        <span key={`${version}-${id}`}>
+          {index > 0 ? ", " : ""}
+          <Link
+            href={`/runs/${version}/${id}`}
+            className="font-mono underline underline-offset-2"
+          >
+            {id}
+          </Link>
+        </span>
+      ))}
+    </div>
   );
 }
 

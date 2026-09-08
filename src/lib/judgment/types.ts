@@ -13,11 +13,108 @@ export interface ClarityJudgment {
 
 /**
  * Swappable judge. The deterministic fallback is the default so the
- * repo runs without credentials. An LLM client could implement this later.
+ * repo runs without credentials. An optional LLM judge implements
+ * AsyncClarityJudge; evaluation does not depend on it.
  */
 export interface ClarityJudge {
   version: ClarityRubricVersion;
   score(trace: Trace, options?: { requiresEscalation?: boolean }): ClarityJudgment;
+}
+
+export type ClarityJudgeErrorCode =
+  | "missing_config"
+  | "api_error"
+  | "timeout"
+  | "http_error"
+  | "empty_response"
+  | "malformed_json"
+  | "invalid_score"
+  | "invalid_response";
+
+export interface ClarityJudgeError {
+  metric: "next_step_clarity";
+  error: true;
+  code: ClarityJudgeErrorCode;
+  reason: string;
+}
+
+export type ClarityJudgeResult = ClarityJudgment | ClarityJudgeError;
+
+/** Smallest async extension. Deterministic ClarityJudge stays synchronous. */
+export interface AsyncClarityJudge {
+  kind: "llm";
+  version: string;
+  score(
+    trace: Trace,
+    options?: { requiresEscalation?: boolean },
+  ): Promise<ClarityJudgeResult>;
+}
+
+export interface ClarityJudgeInput {
+  agentResponses: string[];
+  transactionalCompletionOccurred: boolean;
+  relevantTool: {
+    name: string;
+    status: string;
+    errorMessage?: string;
+  } | null;
+  finalStateChanged: boolean;
+  escalationRequired: boolean;
+  escalationOccurred: boolean;
+  handoffContext: {
+    destination: string;
+    reason: string;
+  } | null;
+  requestContext: {
+    workflow: string;
+    medication?: string;
+    pharmacy?: string;
+    requestedSlotStartAt?: string;
+  };
+}
+
+export interface LlmClarityCalibrationRow {
+  id: string;
+  scenarioId: string;
+  agentVersion: string;
+  kind: ManualClarityLabel["kind"];
+  humanScore: ClarityScore;
+  llmScore: ClarityScore | null;
+  agreed: boolean | null;
+  absoluteError: number | null;
+  reason: string | null;
+  evidence: string[];
+  rawModelResponse: string | null;
+  model: string;
+  evaluatorVersion: string;
+  error?: {
+    code: ClarityJudgeErrorCode;
+    reason: string;
+  };
+}
+
+export interface LlmClarityCalibrationArtifact {
+  id: "clarity-calibration-llm";
+  judge: "llm";
+  evaluatorVersion: string;
+  model: string;
+  rows: LlmClarityCalibrationRow[];
+  evaluated: {
+    n: number;
+    exactAgreementCount: number;
+    exactAgreementRate: number;
+    meanAbsoluteError: number;
+  };
+  errors: {
+    n: number;
+    caseIds: string[];
+  };
+  disagreements: Array<{
+    id: string;
+    humanScore: ClarityScore;
+    llmScore: ClarityScore;
+    reason: string;
+  }>;
 }
 
 export interface ManualClarityLabel {

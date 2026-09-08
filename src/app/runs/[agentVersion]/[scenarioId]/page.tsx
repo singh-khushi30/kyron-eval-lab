@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { EvaluationPanel } from "@/components/EvaluationPanel";
+import { HumanReviewCard } from "@/components/HumanReviewCard";
 import { GroundTruth } from "@/components/GroundTruth";
 import { StatusChip } from "@/components/StatusChip";
 import { TraceTimeline } from "@/components/TraceTimeline";
@@ -84,6 +85,12 @@ export default async function RunInspectorPage({
           overallPassed={run.overallPassed}
           keyFailure={keyFailure}
           clarity={clarity}
+        />
+        <HumanReviewCard
+          key={`${run.agentVersion}:${scenario.id}`}
+          agentVersion={run.agentVersion}
+          scenarioId={scenario.id}
+          overallPassed={run.overallPassed}
         />
       </div>
     </AppShell>

@@ -1,7 +1,6 @@
 import type { EvaluationResult } from "@/lib/domain";
 import type { ClarityJudgment } from "@/lib/judgment";
 import { METRIC_LABELS } from "@/lib/ui/format";
-import { ReviewerMark } from "./ReviewerMark";
 import { ScoreChip, StatusChip } from "./StatusChip";
 
 export function EvaluationPanel({
@@ -57,7 +56,6 @@ export function EvaluationPanel({
               </li>
             ))}
           </ul>
-          <ReviewerMark />
         </article>
       ))}
 

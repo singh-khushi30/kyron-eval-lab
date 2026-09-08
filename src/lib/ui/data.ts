@@ -3,7 +3,11 @@ import type { AgentVersion, EvaluationRun, Scenario } from "@/lib/domain";
 import { compareEvaluationRuns } from "@/lib/experiment/compare";
 import { createEvaluationRun } from "@/lib/eval";
 import { runEvaluationSuite } from "@/lib/eval/artifact";
-import { calibrateClarity, createClarityJudge } from "@/lib/judgment";
+import {
+  calibrateClarity,
+  createClarityJudge,
+  loadLlmCalibrationArtifact,
+} from "@/lib/judgment";
 import { SCENARIOS, getScenarioById } from "@/lib/scenarios";
 import { runScenario } from "@/lib/simulation";
 import { summarizeTrace } from "@/lib/simulation/summary";
@@ -25,6 +29,7 @@ export const loadExperiment = cache(() => {
     comparison,
     calibrationV1: calibrateClarity("v1"),
     calibrationV2: calibrateClarity("v2"),
+    llmCalibration: loadLlmCalibrationArtifact(),
   };
 });
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ScenarioTable } from "@/components/ScenarioTable";
+import { summarizeEvaluationRuns } from "@/lib/analytics";
 import { SCENARIOS } from "@/lib/scenarios";
 import { loadExperiment } from "@/lib/ui/data";
 import { formatCountRate, formatPercent } from "@/lib/ui/format";
@@ -62,7 +63,71 @@ export default function OverviewPage() {
         </div>
       </section>
 
-      <section className="mt-10">
+      <section id="evaluation-runs" className="mt-10">
+        <h2 className="text-sm font-semibold">Evaluation runs</h2>
+        <p className="mt-1 text-xs text-muted">
+          Derived from the reproducible v1 and v2 evaluation runs in this
+          synthetic suite. This is not production run history.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {[summarizeEvaluationRuns(v2Runs), summarizeEvaluationRuns(v1Runs)].map(
+            (summary) => (
+              <article
+                key={summary.agentVersion}
+                className="border border-line bg-card px-4 py-3"
+              >
+                <h3 className="font-mono text-sm font-semibold">
+                  {summary.agentVersion}
+                </h3>
+                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">
+                      Scenarios
+                    </dt>
+                    <dd className="font-mono">{summary.scenarioCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">
+                      Passed
+                    </dt>
+                    <dd className="font-mono">{summary.passedCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">
+                      Failed
+                    </dt>
+                    <dd className="font-mono">{summary.failedCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted">
+                      Pass rate
+                    </dt>
+                    <dd className="font-mono">
+                      {formatPercent(summary.passRate)}
+                      {summary.passRate === 1 ? " in synthetic set" : ""}
+                    </dd>
+                  </div>
+                </dl>
+                {summary.failedScenarioIds.length > 0 ? (
+                  <p className="mt-2 text-xs text-muted">
+                    Failed: {summary.failedScenarioIds.join(", ")}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">No failed scenarios</p>
+                )}
+                <Link
+                  href="#scenario-results"
+                  className="mt-3 inline-block text-sm underline underline-offset-2"
+                >
+                  View results
+                </Link>
+              </article>
+            ),
+          )}
+        </div>
+      </section>
+
+      <section id="scenario-results" className="mt-10">
         <h2 className="mb-3 text-sm font-semibold">Scenario results</h2>
         <ScenarioTable
           scenarios={SCENARIOS}

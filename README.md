@@ -30,6 +30,7 @@ These results are regression evidence from a deterministic synthetic set. They a
 - [Experiment: v1 vs v2](#experiment-v1-vs-v2)
 - [Product recommendations](#product-recommendations)
 - [Human-calibrated judgment evaluation](#human-calibrated-judgment-evaluation)
+- [Optional LLM judge](#optional-llm-judge)
 - [Production evolution](#production-evolution)
 - [AI usage](#ai-usage)
 - [Eight-hour scope](#eight-hour-scope)
@@ -58,7 +59,9 @@ npm run lint
 npm run build
 ```
 
-Artifacts written by those commands: `artifacts/v1-evaluation-run.json`, `artifacts/v2-evaluation-run.json`, `artifacts/v1-vs-v2-comparison.json`, `artifacts/clarity-calibration-v1.json`, `artifacts/clarity-calibration-v2.json`.
+`npm run calibrate:llm` is optional and skipped unless `LLM_API_KEY` is set. See [Optional LLM judge](#optional-llm-judge).
+
+Artifacts written by those commands: `artifacts/v1-evaluation-run.json`, `artifacts/v2-evaluation-run.json`, `artifacts/v1-vs-v2-comparison.json`, `artifacts/clarity-calibration-v1.json`, `artifacts/clarity-calibration-v2.json`. Optional LLM output: `artifacts/clarity-calibration-llm.json`.
 
 UI pages compute the same results from the TypeScript evaluation functions. They do not invent a second source of truth.
 
@@ -68,7 +71,7 @@ UI pages compute the same results from the TypeScript evaluation functions. They
 - `/compare` — v1 vs v2 metrics, failure investigations, and evaluator calibration
 - `/runs/v1-naive/APT-003` — trace inspector for any agent version + scenario id
 
-Inspector cards include a local Agree / Needs review control. It is component state only and is not saved.
+The UI exposes reproducible v1/v2 run summaries, derived failure-pattern analysis with links to affected scenarios, and persistent local human-review annotations. Reviews live in browser localStorage for this prototype and do not change automated evaluation results. Production would use authenticated server-side persistence and audit history.
 
 ## Architecture
 
@@ -321,6 +324,54 @@ On the six experiment traces: still **6/6**, MAE **0**.
 Including the calibration example: **7/7**, MAE **0**.
 
 The gain is the CAL-001 case, not a change to the experiment traces. That is a narrow fix and may be overfit to this wording. Seven labels are insufficient to establish evaluator reliability. Production validation would need a larger stratified human-labeled sample and periodic drift checks.
+
+## Optional LLM judge
+
+Structured transactional facts stay deterministically evaluated. The optional LLM is used only for the subjective `next_step_clarity` metric, and only as a calibration experiment against the existing human labels.
+
+The deterministic judge remains the default, the test fallback, and the credential-free path. `npm install`, `npm test`, `npm run build`, and `npm run calibrate:v1` / `calibrate:v2` do not require an API key. Deterministic next-step-clarity calibration remains **7/7**.
+
+To run the optional evaluator:
+
+1. Copy `.env.example` to `.env`
+2. Set `LLM_API_KEY`, and optionally `LLM_MODEL` and `LLM_BASE_URL` (OpenAI-compatible chat completions)
+3. Run `npm run calibrate:llm`
+
+The command writes `artifacts/clarity-calibration-llm.json`. If no key is configured, it exits with a skip message and does not fail the rest of the lab.
+
+### First-run evidence
+
+A first live run was preserved as `artifacts/clarity-calibration-llm.json`. It was not rerun or prompt-tuned after the result was observed. Human labels and deterministic evaluator semantics were not changed.
+
+| | |
+|---|---|
+| Model | `gemini-3.8-flash` |
+| Attempted | 7 |
+| Evaluated | 3 |
+| Provider errors | 4 (excluded from agreement) |
+| Exact agreement | **2/3 (66.7%)** — never 2/7 |
+| MAE (evaluated only) | 0.333 |
+
+Only **3/7** calls returned usable judgments. **2/3 agreement is too small to establish reliability.** It is not evidence that Gemini is better or worse than the deterministic evaluator.
+
+**Evaluated**
+
+| Case | Human | LLM | |
+|---|---|---|---|
+| RX-003 v1 | 0 | 0 | agree |
+| RX-004 v1 | 0 | 0 | agree |
+| APT-003 v2 | 2 | 1 | disagree |
+
+The APT-003 v2 disagreement: the human label treated a stated scheduler retry as a concrete next step (score 2). The model scored 1 because it required evidence of an owned handoff (`escalationOccurred` was false). That is a rubric-boundary observation for a larger labeled set, not a reason to change the human label after seeing the model output.
+
+**Provider failures (not disagreements)**
+
+- 3 HTTP 503 high-demand failures: APT-003 v1, RX-003 v2, RX-004 v2
+- 1 HTTP 429 quota failure: **CAL-001 was not evaluated by the LLM**
+
+Provider errors must not be scored as agent failures. A production LLM judge would need retries/backoff, rate limiting, explicit evaluator-error states, and monitoring.
+
+LLM agreement does not establish evaluator reliability. Disagreement with a human label is preserved rather than tuned away.
 
 ## Production evolution
 
