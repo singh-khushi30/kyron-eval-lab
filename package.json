@@ -2,11 +2,14 @@
   "name": "kyron-eval-lab",
   "version": "0.1.0",
   "private": true,
+  "description": "Minimal evaluation platform for a healthcare voice agent",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test src/lib/simulation/invariants.test.ts",
+    "simulate": "tsx scripts/run-v1.ts"
   },
   "dependencies": {
     "next": "16.3.4",
@@ -21,6 +24,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

@@ -1,34 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kyron Eval Lab
 
-## Getting Started
+Minimal full-stack evaluation platform for a healthcare voice agent.
 
-First, run the development server:
+## Purpose
+
+Run synthetic healthcare workflows through a simulated agent, capture a trace of messages and tool/state changes, then score whether the **system** actually completed the task — not just whether the conversation sounded finished.
+
+## Current scope (Phase 2)
+
+Domain model, eight synthetic scenarios, fake healthcare tools, a deterministic `v1-naive` agent, and inspectable traces. No dashboard, evaluators, `v2`, auth, database, or LLM yet.
+
+Stack: Next.js App Router, TypeScript, Tailwind CSS, ESLint.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test
+npm run simulate
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Synthetic data
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+All patients, providers, pharmacies, medications, and symptoms are fabricated. No real patient or provider information is used.
 
-## Learn More
+## Workflows
 
-To learn more about Next.js, take a look at the following resources:
+- `appointment_reschedule` — move an existing visit to a new slot
+- `prescription_refill` — refill a medication, optionally at a new pharmacy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Evaluation thesis
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+A conversation can sound successful while the underlying task has actually failed.
 
-## Deploy on Vercel
+Ground truth lives in structured scenario and tool state (`expectedOutcome`, `finalState`, tool results). Transcript claims such as "you're all set" are not evidence of completion.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Simulation Harness
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The harness is deterministic and text-based. It does not call a model and does not play audio.
+
+Fake tools stand in for external healthcare systems (scheduling and pharmacy). They return `success`, `failure`, or `timeout`, and they mutate clinic state only after a confirmed success.
+
+Structured tool results and `finalState` are ground truth for whether a transaction completed. Transcript language alone cannot establish actual completion. `v1-naive` is written to demonstrate that gap: it sometimes says the task is done after a timeout or failure.
+
+This harness cannot evaluate real speech issues such as ASR errors, latency, interruptions, prosody, or acoustic conditions.
