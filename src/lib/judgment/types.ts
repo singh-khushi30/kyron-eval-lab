@@ -6,7 +6,9 @@ export type ClarityRubricVersion = "v1" | "v2";
 
 export interface ClarityJudgment {
   metric: "next_step_clarity";
-  score: ClarityScore;
+  /** False when the requested ordinary transaction actually completed. */
+  applicable: boolean;
+  score: ClarityScore | null;
   reason: string;
   evidence: EvaluationEvidence[];
 }

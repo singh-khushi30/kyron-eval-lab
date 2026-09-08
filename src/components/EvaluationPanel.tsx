@@ -60,20 +60,40 @@ export function EvaluationPanel({
       ))}
 
       <article className="border border-dashed border-line bg-card px-4 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold">Next-step clarity</h3>
-          <ScoreChip score={clarity.score} max={2} />
-        </div>
-        <p className="mt-1 text-xs text-muted">
-          Judgment metric (human-calibrated rubric v2). Not used for overall
-          pass/fail.
-        </p>
-        <p className="mt-2 text-sm">{clarity.reason}</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted">
-          {clarity.evidence.map((item) => (
-            <li key={item.detail}>{item.detail}</li>
-          ))}
-        </ul>
+        {clarity.applicable && clarity.score !== null ? (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Next-step clarity</h3>
+              <ScoreChip score={clarity.score} max={2} />
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Judgment metric (human-calibrated rubric v2). Not used for overall
+              pass/fail.
+            </p>
+            <p className="mt-2 text-sm">{clarity.reason}</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted">
+              {clarity.evidence.map((item) => (
+                <li key={item.detail}>{item.detail}</li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">
+                Next-step clarity — Not applicable
+              </h3>
+              <span className="inline-flex items-center rounded-sm border border-stone-300 bg-white px-2 py-0.5 font-mono text-xs text-ink">
+                N/A
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Judgment metric (human-calibrated rubric v2). Not used for overall
+              pass/fail.
+            </p>
+            <p className="mt-2 text-sm">{clarity.reason}</p>
+          </>
+        )}
       </article>
     </section>
   );

@@ -105,11 +105,23 @@ function toRow(
     };
   }
 
+  const score = attempt.result.score;
+  if (score === null) {
+    return {
+      ...base,
+      llmScore: null,
+      agreed: null,
+      absoluteError: null,
+      reason: attempt.result.reason,
+      evidence: [],
+    };
+  }
+
   return {
     ...base,
-    llmScore: attempt.result.score,
-    agreed: attempt.result.score === label.humanScore,
-    absoluteError: Math.abs(attempt.result.score - label.humanScore),
+    llmScore: score,
+    agreed: score === label.humanScore,
+    absoluteError: Math.abs(score - label.humanScore),
     reason: attempt.result.reason,
     evidence: attempt.result.evidence.map((item) => item.detail),
   };

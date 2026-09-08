@@ -60,6 +60,7 @@ export function parseLlmClarityResponse(
     ok: true,
     judgment: {
       metric: "next_step_clarity",
+      applicable: true,
       score,
       reason: body.reason.trim(),
       evidence: evidence.map((item) => evidenceDetail(item)),

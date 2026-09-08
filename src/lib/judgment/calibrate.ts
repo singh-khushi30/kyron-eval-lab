@@ -14,6 +14,11 @@ export function calibrateClarity(
     const judgment = judge.score(trace, {
       requiresEscalation: scenario?.requiresEscalation === true,
     });
+    if (!judgment.applicable || judgment.score === null) {
+      throw new Error(
+        `Labeled case ${label.id} is a recovery example and must remain applicable`,
+      );
+    }
     const absoluteError = Math.abs(judgment.score - label.humanScore);
 
     return {

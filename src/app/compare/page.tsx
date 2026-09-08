@@ -174,7 +174,10 @@ export default function ComparePage() {
         </div>
       </section>
 
-      <section className="mt-10 border border-line bg-card px-4 py-4">
+      <section
+        id="evaluator-calibration"
+        className="mt-10 border border-line bg-card px-4 py-4"
+      >
         <h2 className="text-sm font-semibold">Evaluator calibration</h2>
         <p className="mt-2 text-sm">
           Initial evaluator:{" "}

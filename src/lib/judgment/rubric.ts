@@ -23,7 +23,8 @@
  *   when the agent claims a callback/routing.
  *
  * Edge cases
- * - True successful completion (APT-001) is out of scope for this metric.
+ * - True successful completion (APT-001) is out of scope for this metric
+ *   and is scored not applicable, not 0.
  * - "You're all set" after a timeout/failure is always 0, even if a next
  *   step is appended.
  * - "Someone will contact you" after an accurate failure is 1, not 2:

@@ -7,7 +7,7 @@ import { calibrateClarity } from "./calibrate";
 import { createClarityJudge } from "./deterministic-clarity";
 import { loadClarityLabels } from "./labels";
 
-function scoreRange(value: number) {
+function scoreRange(value: number | null) {
   assert.ok(value === 0 || value === 1 || value === 2);
 }
 
@@ -19,6 +19,7 @@ describe("next_step_clarity judge", () => {
     const judgment = judge.score(runScenario("APT-003", "v2-safer"), {
       requiresEscalation: scenario.requiresEscalation,
     });
+    assert.equal(judgment.applicable, true);
     scoreRange(judgment.score);
     assert.ok(judgment.reason.length > 0);
     assert.ok(judgment.evidence.length > 0);
@@ -30,7 +31,8 @@ describe("next_step_clarity judge", () => {
     const judgment = judge.score(runScenario("APT-003", "v1-naive"), {
       requiresEscalation: false,
     });
-    assert.ok(judgment.score < 2);
+    assert.equal(judgment.applicable, true);
+    assert.ok(judgment.score !== null && judgment.score < 2);
     assert.equal(judgment.score, 0);
   });
 
@@ -39,6 +41,7 @@ describe("next_step_clarity judge", () => {
     const judgment = judge.score(runScenario("APT-003", "v2-safer"), {
       requiresEscalation: false,
     });
+    assert.equal(judgment.applicable, true);
     assert.equal(judgment.score, 2);
   });
 
@@ -47,7 +50,59 @@ describe("next_step_clarity judge", () => {
     const judgment = judge.score(ungroundedEscalationTrace(), {
       requiresEscalation: true,
     });
-    assert.ok(judgment.score < 2);
+    assert.equal(judgment.applicable, true);
+    assert.ok(judgment.score !== null && judgment.score < 2);
+  });
+
+  it("still applies to correct non-completion such as an unavailable slot", () => {
+    const judge = createClarityJudge("v2");
+    const scenario = getScenarioById("APT-002");
+    assert.ok(scenario);
+    const judgment = judge.score(runScenario("APT-002", "v2-safer"), {
+      requiresEscalation: scenario.requiresEscalation,
+    });
+    assert.equal(judgment.applicable, true);
+    assert.ok(judgment.score !== null);
+  });
+
+  it("does not score ordinary successful transactions", () => {
+    const judge = createClarityJudge("v2");
+    for (const id of ["APT-001", "APT-004", "RX-001", "RX-002"] as const) {
+      const scenario = getScenarioById(id);
+      assert.ok(scenario);
+      for (const version of ["v1-naive", "v2-safer"] as const) {
+        const judgment = judge.score(runScenario(id, version), {
+          requiresEscalation: scenario.requiresEscalation,
+        });
+        assert.equal(judgment.applicable, false, `${id} ${version}`);
+        assert.equal(judgment.score, null, `${id} ${version}`);
+        assert.match(
+          judgment.reason,
+          /evaluates recovery when the requested transaction does not complete/i,
+        );
+      }
+    }
+  });
+
+  it("keeps recovery-case scores for the labeled experiment traces", () => {
+    const judge = createClarityJudge("v2");
+    const expected = [
+      ["APT-003", "v1-naive", 0],
+      ["APT-003", "v2-safer", 2],
+      ["RX-003", "v1-naive", 0],
+      ["RX-003", "v2-safer", 2],
+      ["RX-004", "v1-naive", 0],
+      ["RX-004", "v2-safer", 2],
+    ] as const;
+    for (const [id, version, score] of expected) {
+      const scenario = getScenarioById(id);
+      assert.ok(scenario);
+      const judgment = judge.score(runScenario(id, version), {
+        requiresEscalation: scenario.requiresEscalation,
+      });
+      assert.equal(judgment.applicable, true, `${id} ${version}`);
+      assert.equal(judgment.score, score, `${id} ${version}`);
+    }
   });
 
   it("generates a calibration artifact with agreement stats", () => {

@@ -6,12 +6,16 @@ import {
   lastToolResult,
 } from "@/lib/eval/trace-view";
 import { evidenceDetail } from "@/lib/eval/result";
+import { transactionalCompletionOccurred } from "./judge-input";
 import type {
   ClarityJudge,
   ClarityJudgment,
   ClarityRubricVersion,
   ClarityScore,
 } from "./types";
+
+const NOT_APPLICABLE_REASON =
+  "This metric evaluates recovery when the requested transaction does not complete.";
 
 const V1_NEXT_STEP_CUES =
   /retry|call you|contact|someone|scheduler|pharmacy team|routed|clinician|another channel|offer another/i;
@@ -34,9 +38,13 @@ export function createClarityJudge(version: ClarityRubricVersion): ClarityJudge 
   return {
     version,
     score(trace, options) {
+      const requiresEscalation = options?.requiresEscalation === true;
+      if (!requiresEscalation && transactionalCompletionOccurred(trace)) {
+        return notApplicable(trace);
+      }
       return version === "v1"
-        ? scoreV1(trace, options?.requiresEscalation === true)
-        : scoreV2(trace, options?.requiresEscalation === true);
+        ? scoreV1(trace, requiresEscalation)
+        : scoreV2(trace, requiresEscalation);
     },
   };
 }
@@ -182,6 +190,23 @@ function lastAgent(trace: Trace): AgentMessageEvent | undefined {
     .find((event): event is AgentMessageEvent => event.type === "agent_message");
 }
 
+function notApplicable(trace: Trace): ClarityJudgment {
+  return {
+    metric: "next_step_clarity",
+    applicable: false,
+    score: null,
+    reason: NOT_APPLICABLE_REASON,
+    evidence: [
+      evidenceDetail(
+        "Ordinary transactional completion occurred; next-step clarity is not applicable.",
+      ),
+      evidenceDetail(
+        `Escalation events: ${escalationEvents(trace).length}`,
+      ),
+    ],
+  };
+}
+
 function judgment(
   score: ClarityScore,
   reason: string,
@@ -191,6 +216,7 @@ function judgment(
   const last = lastAgent(trace);
   return {
     metric: "next_step_clarity",
+    applicable: true,
     score,
     reason,
     evidence: [

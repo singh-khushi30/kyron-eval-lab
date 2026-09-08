@@ -62,7 +62,7 @@ function relevantTransactionalTool(trace: Trace) {
   );
 }
 
-function transactionalCompletionOccurred(trace: Trace): boolean {
+export function transactionalCompletionOccurred(trace: Trace): boolean {
   const reschedule = lastToolResult(trace, "reschedule_appointment");
   const refill = lastToolResult(trace, "request_refill");
 

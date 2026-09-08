@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ScenarioTable } from "@/components/ScenarioTable";
+import { ViewResultsLink } from "@/components/ViewResultsLink";
 import { summarizeEvaluationRuns } from "@/lib/analytics";
 import { SCENARIOS } from "@/lib/scenarios";
 import { loadExperiment } from "@/lib/ui/data";
@@ -115,12 +116,7 @@ export default function OverviewPage() {
                 ) : (
                   <p className="mt-2 text-xs text-muted">No failed scenarios</p>
                 )}
-                <Link
-                  href="#scenario-results"
-                  className="mt-3 inline-block text-sm underline underline-offset-2"
-                >
-                  View results
-                </Link>
+                <ViewResultsLink />
               </article>
             ),
           )}
@@ -193,7 +189,12 @@ export default function OverviewPage() {
             </Link>
           </li>
           <li>
-            Review the evaluator calibration example on Compare
+            <Link
+              href="/compare#evaluator-calibration"
+              className="underline underline-offset-2"
+            >
+              Review the evaluator calibration example on Compare
+            </Link>
           </li>
         </ol>
       </section>
