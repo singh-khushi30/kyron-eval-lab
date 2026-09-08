@@ -19,6 +19,12 @@ export interface ChangePharmacyArgs {
   pharmacyId: string;
 }
 
+export interface EscalateToClinicianArgs {
+  reason: string;
+  medicationId?: string;
+  pharmacyId?: string;
+}
+
 export interface ToolExecutionResult {
   status: ToolStatus;
   payload?: Record<string, unknown>;
@@ -37,4 +43,5 @@ export interface FakeTools {
     args: RequestPrescriptionRefillArgs,
   ) => ToolExecutionResult;
   changePharmacy: (args: ChangePharmacyArgs) => ToolExecutionResult;
+  escalateToClinician: (args: EscalateToClinicianArgs) => ToolExecutionResult;
 }

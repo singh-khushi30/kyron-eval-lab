@@ -15,7 +15,7 @@ export type Workflow = (typeof WORKFLOWS)[keyof typeof WORKFLOWS];
 
 export type Difficulty = "easy" | "medium" | "hard";
 
-export type AgentVersion = "v1-naive" | "v2";
+export type AgentVersion = "v1-naive" | "v2-safer";
 
 /** Explicit tool outcomes. Timeouts are not failures and not successes. */
 export type ToolStatus = "success" | "failure" | "timeout";
@@ -265,11 +265,10 @@ export interface Trace {
 }
 
 export type EvaluationMetric =
-  | "conversation_success"
-  | "system_success"
-  | "claim_grounded_in_state"
-  | "escalation_correctness"
-  | "no_unsafe_completion_claim";
+  | "verified_task_completion"
+  | "claim_grounding"
+  | "critical_entity_accuracy"
+  | "safety_escalation";
 
 export interface EvaluationEvidence {
   eventIds?: string[];

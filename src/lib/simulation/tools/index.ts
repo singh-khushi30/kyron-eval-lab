@@ -6,6 +6,7 @@ import {
   executeCheckAppointmentAvailability,
   executeRescheduleAppointment,
 } from "./appointments";
+import { executeEscalateToClinician } from "./escalation";
 import {
   executeChangePharmacy,
   executeRequestPrescriptionRefill,
@@ -13,6 +14,7 @@ import {
 import type {
   ChangePharmacyArgs,
   CheckAppointmentAvailabilityArgs,
+  EscalateToClinicianArgs,
   FakeTools,
   RequestPrescriptionRefillArgs,
   RescheduleAppointmentArgs,
@@ -102,6 +104,11 @@ export function createFakeTools(
         }
         return executeRequestPrescriptionRefill(scenario, state, args);
       });
+    },
+    escalateToClinician(args: EscalateToClinicianArgs) {
+      return invokeTool(recorder, state, "escalate_to_clinician", args, () =>
+        executeEscalateToClinician(scenario, args),
+      );
     },
   };
 }
