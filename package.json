@@ -8,11 +8,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/simulation/invariants.test.ts src/lib/simulation/v2-safer.test.ts src/lib/eval/evaluators.test.ts src/lib/experiment/compare.test.ts",
+    "test": "tsx --test src/lib/simulation/invariants.test.ts src/lib/simulation/v2-safer.test.ts src/lib/eval/evaluators.test.ts src/lib/experiment/compare.test.ts src/lib/judgment/clarity.test.ts",
     "simulate": "tsx scripts/run-v1.ts",
     "evaluate": "tsx scripts/run-eval-v1.ts",
     "evaluate:v2": "tsx scripts/run-eval-v2.ts",
-    "compare": "tsx scripts/compare-v1-v2.ts"
+    "compare": "tsx scripts/compare-v1-v2.ts",
+    "calibrate:v1": "tsx scripts/calibrate-clarity-v1.ts",
+    "calibrate:v2": "tsx scripts/calibrate-clarity-v2.ts"
   },
   "dependencies": {
     "next": "16.3.4",

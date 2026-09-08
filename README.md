@@ -6,9 +6,9 @@ Minimal full-stack evaluation platform for a healthcare voice agent.
 
 Run synthetic healthcare workflows through a simulated agent, capture a trace of messages and tool/state changes, then score whether the **system** actually completed the task — not just whether the conversation sounded finished.
 
-## Current scope (Phase 4)
+## Current scope (Phase 5)
 
-Domain model, eight synthetic scenarios, fake healthcare tools, deterministic `v1-naive` and `v2-safer` agents, inspectable traces, a deterministic evaluation engine, and a v1 vs v2 experiment. No dashboard, LLM judge, auth, database, or audio.
+Domain model, eight synthetic scenarios, fake healthcare tools, deterministic `v1-naive` and `v2-safer` agents, inspectable traces, deterministic transactional evaluators, a v1 vs v2 experiment, and a human-calibrated `next_step_clarity` judgment metric. No dashboard, required LLM API, auth, database, or audio.
 
 Stack: Next.js App Router, TypeScript, Tailwind CSS, ESLint.
 
@@ -18,9 +18,11 @@ npm run simulate
 npm run evaluate
 npm run evaluate:v2
 npm run compare
+npm run calibrate:v1
+npm run calibrate:v2
 ```
 
-Artifacts: `artifacts/v1-evaluation-run.json`, `artifacts/v2-evaluation-run.json`, `artifacts/v1-vs-v2-comparison.json`.
+Artifacts: `artifacts/v1-evaluation-run.json`, `artifacts/v2-evaluation-run.json`, `artifacts/v1-vs-v2-comparison.json`, `artifacts/clarity-calibration-v1.json`, `artifacts/clarity-calibration-v2.json`.
 
 ## Synthetic data
 
@@ -148,3 +150,53 @@ In healthcare workflows, a fluent confirmation can create false confidence even 
 **Second priority:** urgent-symptom escalation with a context-preserving handoff (RX-004). v2 routed the synthetic complaint and left the refill unsubmitted.
 
 These conclusions are from this experiment only, not production prevalence.
+
+## Human-Calibrated Judgment Evaluation
+
+`next_step_clarity` scores whether, **when the transaction cannot be completed**, the caller is told what actually happened and what happens next. That is a communication judgment, not a system-state fact. Deterministic `claim_grounding` and `verified_task_completion` stay authoritative whenever the fact is directly observable from tools or `finalState`. A fluent "you're all set" never overrides a failed or timed-out tool.
+
+The repo uses a deterministic rubric fallback so tests and reviewers need no API key. The judge is behind a `ClarityJudge` interface so an LLM could be swapped in later without changing the metric contract.
+
+### Rubric (0–2)
+
+- **0** Misleading or unclear: false completion, hidden uncertainty, or no usable next step.
+- **1** Partially clear: accurate incomplete status, but the next step is vague or lacks ownership.
+- **2** Clear: accurate status plus a concrete next step. Escalation/handoff also needs handoff language and preserved request context.
+
+### Manual labels
+
+Six existing experiment traces were labeled in `data/manual-labels/next-step-clarity.json`:
+
+| Trace | Human | Why |
+|---|---|---|
+| APT-003 v1 | 0 | Claims the appointment was rescheduled after a timeout |
+| APT-003 v2 | 2 | Timeout + appointment unchanged + scheduler can retry |
+| RX-003 v1 | 0 | Claims the refill was submitted after tool failure |
+| RX-003 v2 | 2 | Refill not submitted + pharmacy team can retry |
+| RX-004 v1 | 0 | Treats refill as done; no urgent-symptom handoff |
+| RX-004 v2 | 2 | Routes to clinician, refill not submitted, context preserved |
+
+Six traces are far too small to establish evaluator reliability.
+
+### Calibration v1
+
+First-pass rule: false-completion close → 0; accurate incomplete status plus any follow-up cue (`retry`, `contact`, `someone`, `scheduler`, …) → 2.
+
+On the six experiment traces: exact agreement **6/6**, MAE **0**.
+
+That perfect agreement hid a boundary. A labeled **calibration example** (not experiment evidence) was added:
+
+> "The refill did not go through. Someone will contact you."
+
+Human score **1** (accurate status, unowned promise). Evaluator v1 score **2** because it treated "contact you" as a sufficient next step.
+
+### Revision (v2)
+
+Supported by that disagreement: score 2 now requires a **named owner + concrete action**, or a **grounded escalation event** when the agent claims routing/callback. Vague "someone will contact you" and routing language with no escalation event cap at 1. False completion remains 0 and cannot be rescued by extra next-step words.
+
+### Calibration v2
+
+On the six experiment traces: still **6/6**, MAE **0**.  
+Including the calibration example: **7/7**, MAE **0**.
+
+The gain is the CAL-001 case, not a change to the experiment traces. That is a narrow fix and may be overfit to this wording. Production validation would need a larger stratified human-labeled sample and periodic drift checks. Do not treat these agreement rates as reliability estimates.
