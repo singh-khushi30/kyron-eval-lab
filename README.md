@@ -6,15 +6,39 @@ Minimal full-stack evaluation platform for a healthcare voice agent.
 
 Run synthetic healthcare workflows through a simulated agent, capture a trace of messages and tool/state changes, then score whether the **system** actually completed the task — not just whether the conversation sounded finished.
 
-## Current scope (Phase 5)
+## Current scope (Phase 6)
 
-Domain model, eight synthetic scenarios, fake healthcare tools, deterministic `v1-naive` and `v2-safer` agents, inspectable traces, deterministic transactional evaluators, a v1 vs v2 experiment, and a human-calibrated `next_step_clarity` judgment metric. No dashboard, required LLM API, auth, database, or audio.
+Full-stack evaluation product: deterministic harness, evaluators, v1 vs v2 experiment, next-step-clarity calibration, and a local web UI. No database, auth, required LLM API, audio, or real healthcare integrations.
 
 Stack: Next.js App Router, TypeScript, Tailwind CSS, ESLint.
 
 ```bash
+npm install
+npm run dev
+```
+
+Then open http://localhost:3000.
+
+### Routes
+
+- `/` — overview and scenario table
+- `/compare` — v1 vs v2 metrics and failure investigations
+- `/runs/v1-naive/APT-003` — trace inspector (any agent version + scenario id)
+
+### What to inspect first
+
+1. Compare v1 vs v2 (`/compare`)
+2. Open APT-003 v1 (`/runs/v1-naive/APT-003`)
+3. Compare it with APT-003 v2 (`/runs/v2-safer/APT-003`)
+4. Inspect RX-004 escalation (`/runs/v2-safer/RX-004`)
+5. Review evaluator calibration on `/compare`
+
+Results on those pages are computed from the same TypeScript evaluation functions used by `npm run evaluate` / `npm run compare`.
+
+Inspector cards include a local Agree / Needs review control. It is component state only and is not saved. Persistence is future work.
+
+```bash
 npm test
-npm run simulate
 npm run evaluate
 npm run evaluate:v2
 npm run compare
