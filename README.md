@@ -20,8 +20,15 @@ This distinction — system success vs. what the agent claims happened — is th
 
 These results are regression evidence from a deterministic synthetic set. They are not an estimate of production performance, and 8/8 does not mean v2 is generally safe.
 
+## Live Demo
+
+https://kyron-eval-lab.vercel.app/
+
+The deployed demo uses the deterministic, credential-free evaluation path. The optional LLM calibration experiment is preserved as an artifact and does not require an API key to review.
+
 ## Contents
 
+- [Live Demo](#live-demo)
 - [Quick start](#quick-start)
 - [Architecture](#architecture)
 - [What to inspect first](#what-to-inspect-first)
